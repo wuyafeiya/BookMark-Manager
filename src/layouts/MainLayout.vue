@@ -144,6 +144,14 @@
           </div>
         </div>
         <div class="header-actions">
+          <el-button 
+            type="success" 
+            class="create-folder-btn"
+            @click="showCreateFolderDialog"
+          >
+            <el-icon><FolderAdd /></el-icon>
+            创建收藏夹
+          </el-button>
           <input
             type="file"
             accept=".html"
@@ -155,8 +163,55 @@
             <el-icon><Upload /></el-icon>
             导入书签
           </el-button>
+          <el-button @click="exportBookmarks">
+            <el-icon><Download /></el-icon>
+            导出书签
+          </el-button>
         </div>
       </header>
+
+      <!-- 创建收藏夹对话框 -->
+      <el-dialog
+        v-model="createFolderVisible"
+        title="创建收藏夹"
+        width="400px"
+        class="create-folder-dialog"
+        :show-close="false"
+        :close-on-click-modal="false"
+      >
+        <el-form 
+          :model="folderForm"
+          :rules="folderRules"
+          ref="folderFormRef"
+          label-position="top"
+        >
+          <el-form-item 
+            label="收藏夹名称" 
+            prop="name"
+            :rules="[
+              { required: true, message: '请输入收藏夹名称', trigger: 'blur' },
+              { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' }
+            ]"
+          >
+            <el-input 
+              v-model="folderForm.name"
+              placeholder="请输入收藏夹名称"
+              maxlength="20"
+              show-word-limit
+              @keyup.enter="createFolder"
+            />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <div class="dialog-footer">
+            <el-button @click="cancelCreate">取消</el-button>
+            <el-button type="primary" @click="createFolder">
+              创建
+            </el-button>
+          </div>
+        </template>
+      </el-dialog>
+
       <main class="content">
         <router-view></router-view>
       </main>
@@ -238,6 +293,7 @@ export default defineComponent({
 
       try {
         const content = await readFileContent(file)
+        console.log(content)        
         store.importBookmarks(content)
         ElMessage.success('书签导入成功')
       } catch (error) {
@@ -271,6 +327,38 @@ export default defineComponent({
       searchQuery.value = ''
     }
 
+    const createFolderVisible = ref(false)
+    const folderForm = ref({ name: '' })
+    const folderFormRef = ref()
+
+    const showCreateFolderDialog = () => {
+      createFolderVisible.value = true
+      nextTick(() => {
+        folderFormRef.value?.resetFields()
+      })
+    }
+
+    const cancelCreate = () => {
+      createFolderVisible.value = false
+      folderForm.value.name = ''
+    }
+
+    const createFolder = () => {
+      folderFormRef.value?.validate((valid: boolean) => {
+        if (valid) {
+          store.addCategory(folderForm.value.name)
+          ElMessage.success('创建成功')
+          createFolderVisible.value = false
+          folderForm.value.name = ''
+        }
+      })
+    }
+
+    const exportBookmarks = () => {
+      store.exportBookmarks()
+      ElMessage.success('书签导出成功')
+    }
+
     return {
       searchQuery,
       searchResults,
@@ -285,7 +373,14 @@ export default defineComponent({
       // 添加新的返回值
       showSidebar,
       isMobile,
-      currentTitle
+      currentTitle,
+      createFolderVisible,
+      folderForm,
+      folderFormRef,
+      showCreateFolderDialog,
+      cancelCreate,
+      createFolder,
+      exportBookmarks
     }
   },
   data() {
@@ -376,11 +471,10 @@ export default defineComponent({
 
 .header-actions {
   display: flex;
-  align-items: center;
   gap: 12px;
 }
 
-.header-actions .el-button {
+.create-folder-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -789,6 +883,60 @@ export default defineComponent({
   .main-content {
     height: calc(100vh - 50px);
     padding-bottom: env(safe-area-inset-bottom); /* 适配全面屏 */
+  }
+}
+
+:deep(.create-folder-dialog) {
+  border-radius: 8px;
+}
+
+:deep(.create-folder-dialog .el-dialog__header) {
+  margin: 0;
+  padding: 20px 20px 0;
+}
+
+:deep(.create-folder-dialog .el-dialog__body) {
+  padding: 20px;
+}
+
+:deep(.create-folder-dialog .el-form-item__label) {
+  font-weight: 500;
+  padding-bottom: 8px;
+}
+
+:deep(.create-folder-dialog .el-input__wrapper) {
+  box-shadow: none;
+  border: 1px solid #dcdfe6;
+  transition: all 0.3s;
+}
+
+:deep(.create-folder-dialog .el-input__wrapper:hover) {
+  border-color: #c0c4cc;
+}
+
+:deep(.create-folder-dialog .el-input__wrapper.is-focus) {
+  border-color: #00b96b;
+}
+
+:deep(.create-folder-dialog .el-dialog__footer) {
+  padding: 10px 20px 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+@media screen and (max-width: 768px) {
+  .header-actions {
+    flex-wrap: wrap;
+  }
+
+  .header-actions .el-button {
+    flex: 1;
+    min-width: 140px;
   }
 }
 </style> 

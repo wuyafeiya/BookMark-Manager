@@ -33,61 +33,30 @@ export const useBookmarkStore = defineStore('bookmark', {
       const parser = new DOMParser()
       const doc = parser.parseFromString(htmlContent, 'text/html')
       
-      // 找到 "Bookmarks Bar" 文件夹
-      const folders = Array.from(doc.getElementsByTagName('h3'))
-      const bookmarksBarFolder = folders.find(folder => 
-        folder.textContent?.includes('Bookmarks Bar') || 
-        folder.textContent?.includes('书签栏')
-      )
-      
-      if (!bookmarksBarFolder) {
-        console.error('未找到书签栏')
-        return
-      }
-
       // 清空现有数据
       this.categories = []
       this.bookmarks = []
       
-      // 获取书签栏下的所有内容
-      const dl = bookmarksBarFolder.nextElementSibling
-      if (dl) {
-        // 先处理直接在书签栏下的书签
-        const directBookmarks = Array.from(dl.children).filter(child => 
-          child.tagName === 'DT' && child.querySelector('a')
-        )
-        
-        if (directBookmarks.length > 0) {
+      // 获取所有 DT 元素（包含文件夹）
+      const dts = Array.from(doc.getElementsByTagName('dt'))
+      
+      // 处理每个 DT 元素
+      dts.forEach(dt => {
+        const h3 = dt.querySelector('h3')
+        if (h3) {
+          // 跳过 Bookmarks Bar
+          if (h3.textContent?.includes('Bookmarks Bar') || 
+              h3.textContent?.includes('书签栏')) {
+            return
+          }
+
           const categoryId = crypto.randomUUID()
-          const bookmarks = directBookmarks.map(dt => {
-            const a = dt.querySelector('a')
-            return {
-              id: crypto.randomUUID(),
-              title: a?.textContent || '',
-              url: a?.href || '',
-              addDate: a?.getAttribute('add_date') || '',
-              icon: a?.getAttribute('icon') || '',
-              categoryId
-            }
-          })
-
-          this.bookmarks.push(...bookmarks)
-          this.categories.push({
-            id: categoryId,
-            name: 'Bookmarks Bar',
-            count: bookmarks.length
-          })
-        }
-
-        // 处理文件夹
-        const subFolders = Array.from(dl.getElementsByTagName('h3'))
-        subFolders.forEach(folder => {
-          const categoryId = crypto.randomUUID()
-          const categoryName = folder.textContent || '未分类'
-          const parentDL = folder.parentElement?.nextElementSibling
-
-          if (parentDL) {
-            const bookmarkElements = parentDL.getElementsByTagName('a')
+          const categoryName = h3.textContent || '未分类'
+          
+          // 直接从当前 dt 获取下一个 dl
+          const dl = dt.querySelector('dl')
+          if (dl) {
+            const bookmarkElements = dl.getElementsByTagName('a')
             const bookmarks = Array.from(bookmarkElements).map(a => ({
               id: crypto.randomUUID(),
               title: a.textContent || '',
@@ -106,8 +75,8 @@ export const useBookmarkStore = defineStore('bookmark', {
               })
             }
           }
-        })
-      }
+        }
+      })
 
       // 保存到 localStorage
       this.saveToLocalStorage()
@@ -146,6 +115,81 @@ export const useBookmarkStore = defineStore('bookmark', {
       this.bookmarks = []
       this.categories = []
       this.saveToLocalStorage()
+    },
+
+    // 添加新的分类
+    addCategory(name: string) {
+      const newCategory = {
+        id: crypto.randomUUID(),
+        name,
+        count: 0
+      }
+      this.categories.push(newCategory)
+      this.saveToLocalStorage()
+      return newCategory
+    },
+
+    // 添加书签到指定分类
+    addBookmark(bookmark: Partial<Bookmark>, categoryId: string) {
+      const newBookmark = {
+        id: crypto.randomUUID(),
+        title: bookmark.title || '',
+        url: bookmark.url || '',
+        addDate: new Date().toISOString(),
+        icon: bookmark.icon || '',
+        categoryId
+      }
+      this.bookmarks.push(newBookmark)
+      
+      // 更新分类计数
+      const category = this.categories.find(c => c.id === categoryId)
+      if (category) {
+        category.count++
+      }
+      
+      this.saveToLocalStorage()
+      return newBookmark
+    },
+
+    exportBookmarks() {
+      // 创建书签的 HTML 结构
+      const generateBookmarkHTML = () => {
+        let html = `<!DOCTYPE NETSCAPE-Bookmark-file-1>
+        <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+        <TITLE>Bookmarks</TITLE>
+        <H1>Bookmarks</H1>
+        <DL><p>\n`
+
+        // 遍历分类
+        this.categories.forEach(category => {
+          html += `    <DT><H3>${category.name}</H3>\n    <DL><p>\n`
+          
+          // 获取该分类下的书签
+          const bookmarks = this.bookmarks.filter(b => b.categoryId === category.id)
+          bookmarks.forEach(bookmark => {
+            // 添加 ICON 属性
+            const iconAttr = bookmark.icon ? ` ICON="${bookmark.icon}"` : ''
+            html += `        <DT><A HREF="${bookmark.url}" ADD_DATE="${bookmark.addDate}"${iconAttr}>${bookmark.title}</A>\n`
+          })
+          
+          html += `    </DL><p>\n`
+        })
+
+        html += `</DL><p>`
+        return html
+      }
+
+      // 创建并下载文件
+      const html = generateBookmarkHTML()
+      const blob = new Blob([html], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `bookmarks_${new Date().toISOString().split('T')[0]}.html`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
     }
   },
 

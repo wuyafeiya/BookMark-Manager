@@ -1,8 +1,18 @@
 <template>
   <div class="bookmark-list">
     <div class="header">
-      <h2>{{ currentCategory?.name }}</h2>
-      <span class="count">共 {{ currentCategory?.count }} 个书签</span>
+      <div class="header-left">
+        <h2>{{ currentCategory?.name }}</h2>
+        <span class="count">共 {{ currentCategory?.count }} 个书签</span>
+      </div>
+      <div class="header-actions">
+        <el-button type="primary" @click="addBookmark">
+          <el-icon><Plus /></el-icon>添加书签
+        </el-button>
+        <!-- <el-button @click="createFolder">
+          <el-icon><FolderAdd /></el-icon>新建收藏夹
+        </el-button> -->
+      </div>
     </div>
     
     <div class="bookmark-grid">
@@ -65,6 +75,39 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 新建文件夹对话框 -->
+    <el-dialog v-model="folderDialogVisible" title="新建文件夹">
+      <el-form :model="folderForm">
+        <el-form-item label="名称">
+          <el-input v-model="folderForm.name" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="folderDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleCreateFolder">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 添加书签对话框 -->
+    <el-dialog v-model="bookmarkDialogVisible" title="添加书签">
+      <el-form :model="bookmarkForm">
+        <el-form-item label="标题">
+          <el-input v-model="bookmarkForm.title" />
+        </el-form-item>
+        <el-form-item label="URL">
+          <el-input v-model="bookmarkForm.url" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="bookmarkDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleAddBookmark">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -73,7 +116,7 @@ import { defineComponent, computed, ref, onMounted, watch, onUnmounted, nextTick
 import { useRoute } from 'vue-router'
 import { useBookmarkStore } from '../stores/bookmark'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { MoreFilled, Edit, Delete, Link } from '@element-plus/icons-vue'
+import { MoreFilled, Edit, Delete, Link, FolderAdd, Plus } from '@element-plus/icons-vue'
 
 export default defineComponent({
   name: 'BookmarkList',
@@ -81,7 +124,9 @@ export default defineComponent({
     MoreFilled,
     Edit,
     Delete,
-    Link
+    Link,
+    FolderAdd,
+    Plus
   },
   setup() {
     const route = useRoute()
@@ -179,6 +224,35 @@ export default defineComponent({
       return title.charAt(0).toUpperCase()
     }
 
+    const folderDialogVisible = ref(false)
+    const bookmarkDialogVisible = ref(false)
+    const folderForm = ref({ name: '' })
+    const bookmarkForm = ref({ title: '', url: '' })
+
+    const createFolder = () => {
+      folderDialogVisible.value = true
+    }
+
+    const handleCreateFolder = () => {
+      if (folderForm.value.name) {
+        store.addCategory(folderForm.value.name)
+        folderDialogVisible.value = false
+        folderForm.value.name = ''
+      }
+    }
+
+    const addBookmark = () => {
+      bookmarkDialogVisible.value = true
+    }
+
+    const handleAddBookmark = () => {
+      if (bookmarkForm.value.title && bookmarkForm.value.url) {
+        store.addBookmark(bookmarkForm.value, categoryId.value)
+        bookmarkDialogVisible.value = false
+        bookmarkForm.value = { title: '', url: '' }
+      }
+    }
+
     return {
       currentCategory,
       displayBookmarks,
@@ -190,7 +264,15 @@ export default defineComponent({
       getRandomPastelColor,
       openUrl,
       getIconColor,
-      getIconText
+      getIconText,
+      folderDialogVisible,
+      bookmarkDialogVisible,
+      folderForm,
+      bookmarkForm,
+      createFolder,
+      handleCreateFolder,
+      addBookmark,
+      handleAddBookmark
     }
   }
 })
@@ -203,6 +285,26 @@ export default defineComponent({
 
 .header {
   margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.header-actions .el-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .bookmark-grid {
@@ -332,6 +434,7 @@ export default defineComponent({
   gap: 12px;
 }
 
+/* 移动端适配 */
 @media screen and (max-width: 768px) {
   .bookmark-list {
     padding: 12px;
@@ -352,6 +455,21 @@ export default defineComponent({
 
   .bookmark-url {
     font-size: 12px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .el-button {
+    flex: 1;
+    justify-content: center;
   }
 }
 </style> 

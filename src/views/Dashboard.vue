@@ -175,7 +175,7 @@ export default defineComponent({
       if (lowerName.includes('技术')) return 'Monitor'
       if (lowerName.includes('收藏')) return 'Star'
       if (lowerName.includes('其他')) return 'More'
-      if (lowerName.includes('文���')) return 'Document'
+      if (lowerName.includes('文')) return 'Document'
       if (lowerName.includes('视频')) return 'Film'
       if (lowerName.includes('音乐')) return 'Headset'
       if (lowerName.includes('新闻')) return 'News'
