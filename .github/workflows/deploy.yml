@@ -12,30 +12,35 @@ jobs:
     permissions:
       contents: write
       pages: write
-      id-token: write # 添加 id-token 权限
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      # 检出代码
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 设置 Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      # 安装依赖并构建
       - name: Install and Build
         run: |
           npm install -g pnpm
           pnpm install --no-frozen-lockfile
           pnpm build
 
-      # 部署到 GitHub Pages
-      - name: Deploy to GitHub Pages
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: ./dist # 指定构建产物目录
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
 
-      # 发布 Git
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
