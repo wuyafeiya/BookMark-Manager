@@ -1,14 +1,18 @@
 name: Deploy to GitHub Pages
 
 on:
+  # 监听 main 分支的推送事件
   push:
     branches:
       - main
+  # 允许手动触发部署
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -19,7 +23,6 @@ jobs:
         with:
           node-version: '18'
 
-      # 修改安装步骤
       - name: Install Dependencies
         run: |
           npm install -g pnpm
@@ -34,3 +37,4 @@ jobs:
           folder: dist
           branch: gh-pages
           clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
