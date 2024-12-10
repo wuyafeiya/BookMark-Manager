@@ -1,11 +1,9 @@
 name: Deploy to GitHub Pages
 
 on:
-  # 监听 main 分支的推送事件
   push:
     branches:
       - main
-  # 允许手动触发部署
   workflow_dispatch:
 
 jobs:
@@ -19,25 +17,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 设置 Node.js 环境
+      # 设置 Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      # 安装依赖
-      - name: Install Dependencies
+      # 安装依赖并构建
+      - name: Install and Build
         run: |
           npm install -g pnpm
           pnpm install --no-frozen-lockfile
-
-      # 构建项目
-      - name: Build
-        run: pnpm build
+          pnpm build
 
       # 部署到 GitHub Pages
       - name: Deploy to GitHub Pages
-        run: |
-          mkdir -p ./public # 确保 public 目录存在
-          cp -r dist/* ./public/ # 将构建产物复制到 public
-          echo "Deployment complete!"
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./dist # 指定构建产物目录
+
+      # 发布 GitHub Pages
+      - name: Publish GitHub Pages
+        uses: actions/deploy-pages@v1
