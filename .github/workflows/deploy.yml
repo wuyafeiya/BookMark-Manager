@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
+      id-token: write # 添加 id-token 权限
 
     steps:
       # 检出代码
@@ -36,6 +38,4 @@ jobs:
         with:
           path: ./dist # 指定构建产物目录
 
-      # 发布 GitHub Pages
-      - name: Publish GitHub Pages
-        uses: actions/deploy-pages@v1
+      # 发布 Git
