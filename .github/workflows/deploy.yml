@@ -15,26 +15,29 @@ jobs:
       contents: write
 
     steps:
+      # 检出代码
       - name: Checkout
         uses: actions/checkout@v3
 
+      # 设置 Node.js 环境
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
+      # 安装依赖
       - name: Install Dependencies
         run: |
           npm install -g pnpm
           pnpm install --no-frozen-lockfile
 
+      # 构建项目
       - name: Build
         run: pnpm build
 
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: dist
-          branch: gh-pages
-          clean: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+      # 部署到 GitHub Pages
+      - name: Deploy to GitHub Pages
+        run: |
+          mkdir -p ./public # 确保 public 目录存在
+          cp -r dist/* ./public/ # 将构建产物复制到 public
+          echo "Deployment complete!"
